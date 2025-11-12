@@ -13,12 +13,12 @@ app.use('/api/duties', dutyRoutes);
 app.use(errorHandler);
 
 describe('Duty Routes', () => {
-  const mockDuty: Duty = {
+  const mockDuty = {
     id: '123e4567-e89b-12d3-a456-426614174000',
     name: 'Test Duty',
-    created_at: new Date(),
-    updated_at: new Date(),
-  };
+    created_at: '2025-11-12T13:32:40.225Z',
+    updated_at: '2025-11-12T13:32:40.225Z',
+  } as unknown as Duty;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -97,9 +97,7 @@ describe('Duty Routes', () => {
     });
 
     it('should return 400 for invalid id format', async () => {
-      const response = await request(app)
-        .put('/api/duties/invalid-id')
-        .send({ name: 'Updated' });
+      const response = await request(app).put('/api/duties/invalid-id').send({ name: 'Updated' });
 
       expect(response.status).toBe(400);
     });
@@ -127,4 +125,3 @@ describe('Duty Routes', () => {
     });
   });
 });
-
