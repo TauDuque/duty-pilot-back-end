@@ -18,18 +18,16 @@ const createTablesQuery = `
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
   );
 
-  -- Create duties table (if not exists)
+  -- Create duties table (if not exists) - without list_id initially
   CREATE TABLE IF NOT EXISTS duties (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
-    list_id UUID REFERENCES lists(id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
   );
 
-  -- Create indexes
+  -- Create indexes (except list_id index, which will be created after column exists)
   CREATE INDEX IF NOT EXISTS idx_duties_created_at ON duties(created_at DESC);
-  CREATE INDEX IF NOT EXISTS idx_duties_list_id ON duties(list_id);
   CREATE INDEX IF NOT EXISTS idx_lists_created_at ON lists(created_at DESC);
 `;
 
@@ -53,9 +51,13 @@ async function initDatabase() {
           WHERE table_name = 'duties' AND column_name = 'list_id'
         ) THEN
           ALTER TABLE duties ADD COLUMN list_id UUID REFERENCES lists(id) ON DELETE CASCADE;
-          CREATE INDEX IF NOT EXISTS idx_duties_list_id ON duties(list_id);
         END IF;
       END $$;
+    `);
+
+    // Create index for list_id after ensuring column exists
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_duties_list_id ON duties(list_id);
     `);
 
     // Create default list if it doesn't exist
