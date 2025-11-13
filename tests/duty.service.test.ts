@@ -9,6 +9,7 @@ describe('DutyService', () => {
   const mockDuty: Duty = {
     id: '123e4567-e89b-12d3-a456-426614174000',
     name: 'Test Duty',
+    list_id: '223e4567-e89b-12d3-a456-426614174000',
     created_at: new Date(),
     updated_at: new Date(),
   };
@@ -26,6 +27,18 @@ describe('DutyService', () => {
 
       expect(result).toEqual(mockDuties);
       expect(dutyRepository.findAll).toHaveBeenCalledTimes(1);
+      expect(dutyRepository.findAll).toHaveBeenCalledWith(undefined);
+    });
+
+    it('should return duties filtered by listId', async () => {
+      const mockDuties = [mockDuty];
+      const listId = '223e4567-e89b-12d3-a456-426614174000';
+      jest.spyOn(dutyRepository, 'findAll').mockResolvedValue(mockDuties);
+
+      const result = await dutyService.getAllDuties(listId);
+
+      expect(result).toEqual(mockDuties);
+      expect(dutyRepository.findAll).toHaveBeenCalledWith(listId);
     });
   });
 
@@ -49,6 +62,16 @@ describe('DutyService', () => {
   describe('createDuty', () => {
     it('should create and return a new duty', async () => {
       const input = { name: 'New Duty' };
+      jest.spyOn(dutyRepository, 'create').mockResolvedValue(mockDuty);
+
+      const result = await dutyService.createDuty(input);
+
+      expect(result).toEqual(mockDuty);
+      expect(dutyRepository.create).toHaveBeenCalledWith(input);
+    });
+
+    it('should create duty with list_id', async () => {
+      const input = { name: 'New Duty', list_id: '223e4567-e89b-12d3-a456-426614174000' };
       jest.spyOn(dutyRepository, 'create').mockResolvedValue(mockDuty);
 
       const result = await dutyService.createDuty(input);

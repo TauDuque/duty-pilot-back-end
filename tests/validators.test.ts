@@ -4,6 +4,11 @@ import {
   validateUpdateDuty,
   validateIdParam,
 } from '../src/validators/duty.validator';
+import {
+  validateCreateList,
+  validateUpdateList,
+  validateListIdParam,
+} from '../src/validators/list.validator';
 import { AppError } from '../src/middlewares';
 
 describe('Duty Validators', () => {
@@ -97,6 +102,88 @@ describe('Duty Validators', () => {
       expect(() => {
         validateIdParam(mockReq as Request, mockRes as Response, mockNext);
       }).toThrow(AppError);
+    });
+  });
+
+  describe('List Validators', () => {
+    describe('validateCreateList', () => {
+      it('should pass validation with valid name', () => {
+        mockReq.body = { name: 'Valid List Name' };
+
+        validateCreateList(mockReq as Request, mockRes as Response, mockNext);
+
+        expect(mockNext).toHaveBeenCalled();
+      });
+
+      it('should throw error if name is missing', () => {
+        expect(() => {
+          validateCreateList(mockReq as Request, mockRes as Response, mockNext);
+        }).toThrow(AppError);
+      });
+
+      it('should throw error if name is not a string', () => {
+        mockReq.body = { name: 123 };
+
+        expect(() => {
+          validateCreateList(mockReq as Request, mockRes as Response, mockNext);
+        }).toThrow(AppError);
+      });
+
+      it('should throw error if name is empty', () => {
+        mockReq.body = { name: '   ' };
+
+        expect(() => {
+          validateCreateList(mockReq as Request, mockRes as Response, mockNext);
+        }).toThrow(AppError);
+      });
+
+      it('should throw error if name is too long', () => {
+        mockReq.body = { name: 'a'.repeat(256) };
+
+        expect(() => {
+          validateCreateList(mockReq as Request, mockRes as Response, mockNext);
+        }).toThrow(AppError);
+      });
+    });
+
+    describe('validateUpdateList', () => {
+      it('should pass validation with valid name', () => {
+        mockReq.body = { name: 'Updated List Name' };
+
+        validateUpdateList(mockReq as Request, mockRes as Response, mockNext);
+
+        expect(mockNext).toHaveBeenCalled();
+      });
+
+      it('should throw error if name is missing', () => {
+        expect(() => {
+          validateUpdateList(mockReq as Request, mockRes as Response, mockNext);
+        }).toThrow(AppError);
+      });
+    });
+
+    describe('validateListIdParam', () => {
+      it('should pass validation with valid UUID', () => {
+        mockReq.params = { id: '123e4567-e89b-12d3-a456-426614174000' };
+
+        validateListIdParam(mockReq as Request, mockRes as Response, mockNext);
+
+        expect(mockNext).toHaveBeenCalled();
+      });
+
+      it('should throw error if id is missing', () => {
+        expect(() => {
+          validateListIdParam(mockReq as Request, mockRes as Response, mockNext);
+        }).toThrow(AppError);
+      });
+
+      it('should throw error if id format is invalid', () => {
+        mockReq.params = { id: 'invalid-uuid' };
+
+        expect(() => {
+          validateListIdParam(mockReq as Request, mockRes as Response, mockNext);
+        }).toThrow(AppError);
+      });
     });
   });
 });
