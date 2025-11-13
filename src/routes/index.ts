@@ -1,9 +1,11 @@
 import { Router } from 'express';
 import dutyRoutes from './duty.routes';
+import listRoutes from './list.routes';
 
 const router = Router();
 
 router.use('/duties', dutyRoutes);
+router.use('/lists', listRoutes);
 
 // Health check endpoint
 router.get('/health', (_req, res) => {
