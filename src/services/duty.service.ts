@@ -3,8 +3,8 @@ import { Duty, CreateDutyInput, UpdateDutyInput } from '../types';
 import { AppError } from '../middlewares';
 
 class DutyService {
-  async getAllDuties(): Promise<Duty[]> {
-    return await dutyRepository.findAll();
+  async getAllDuties(listId?: string): Promise<Duty[]> {
+    return await dutyRepository.findAll(listId);
   }
 
   async getDutyById(id: string): Promise<Duty> {

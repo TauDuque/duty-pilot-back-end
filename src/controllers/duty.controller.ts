@@ -3,8 +3,9 @@ import { dutyService } from '../services/duty.service';
 import { CreateDutyInput, UpdateDutyInput, SuccessResponse, Duty } from '../types';
 
 class DutyController {
-  async getAll(_req: Request, res: Response): Promise<void> {
-    const duties = await dutyService.getAllDuties();
+  async getAll(req: Request, res: Response): Promise<void> {
+    const listId = req.query.list_id as string | undefined;
+    const duties = await dutyService.getAllDuties(listId);
 
     const response: SuccessResponse<Duty[]> = {
       success: true,

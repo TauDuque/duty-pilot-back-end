@@ -1,12 +1,14 @@
 export interface Duty {
   id: string;
   name: string;
+  list_id: string | null;
   created_at?: Date;
   updated_at?: Date;
 }
 
 export interface CreateDutyInput {
   name: string;
+  list_id?: string;
 }
 
 export interface UpdateDutyInput {
@@ -14,7 +16,7 @@ export interface UpdateDutyInput {
 }
 
 export interface DutyRepository {
-  findAll(): Promise<Duty[]>;
+  findAll(listId?: string): Promise<Duty[]>;
   findById(id: string): Promise<Duty | null>;
   create(input: CreateDutyInput): Promise<Duty>;
   update(id: string, input: UpdateDutyInput): Promise<Duty | null>;

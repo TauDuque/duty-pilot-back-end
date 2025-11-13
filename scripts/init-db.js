@@ -9,15 +9,28 @@ const pool = new Pool({
   password: process.env.DB_PASSWORD || 'postgres',
 });
 
-const createTableQuery = `
-  CREATE TABLE IF NOT EXISTS duties (
+const createTablesQuery = `
+  -- Create lists table
+  CREATE TABLE IF NOT EXISTS lists (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
   );
 
+  -- Create duties table (if not exists)
+  CREATE TABLE IF NOT EXISTS duties (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    list_id UUID REFERENCES lists(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+  );
+
+  -- Create indexes
   CREATE INDEX IF NOT EXISTS idx_duties_created_at ON duties(created_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_duties_list_id ON duties(list_id);
+  CREATE INDEX IF NOT EXISTS idx_lists_created_at ON lists(created_at DESC);
 `;
 
 async function initDatabase() {
@@ -26,27 +39,64 @@ async function initDatabase() {
 
     const client = await pool.connect();
 
-    await client.query(createTableQuery);
+    // Create tables
+    await client.query(createTablesQuery);
 
     console.log('✓ Database tables created successfully');
 
-    // Check if table exists and show structure
-    const result = await client.query(`
+    // Add list_id column to duties if it doesn't exist (for existing databases)
+    await client.query(`
+      DO $$ 
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'duties' AND column_name = 'list_id'
+        ) THEN
+          ALTER TABLE duties ADD COLUMN list_id UUID REFERENCES lists(id) ON DELETE CASCADE;
+          CREATE INDEX IF NOT EXISTS idx_duties_list_id ON duties(list_id);
+        END IF;
+      END $$;
+    `);
+
+    // Create default list if it doesn't exist
+    const defaultListResult = await client.query(`
+      SELECT id FROM lists WHERE name = 'Minhas Tarefas' LIMIT 1
+    `);
+
+    if (defaultListResult.rows.length === 0) {
+      await client.query(`
+        INSERT INTO lists (name) VALUES ('Minhas Tarefas')
+      `);
+      console.log('✓ Default list "Minhas Tarefas" created');
+    }
+
+    // Show table structures
+    console.log('\n✓ Lists table structure:');
+    const listsResult = await client.query(`
+      SELECT column_name, data_type 
+      FROM information_schema.columns 
+      WHERE table_name = 'lists'
+      ORDER BY ordinal_position;
+    `);
+    listsResult.rows.forEach((row) => {
+      console.log(`  - ${row.column_name}: ${row.data_type}`);
+    });
+
+    console.log('\n✓ Duties table structure:');
+    const dutiesResult = await client.query(`
       SELECT column_name, data_type 
       FROM information_schema.columns 
       WHERE table_name = 'duties'
       ORDER BY ordinal_position;
     `);
-
-    console.log('✓ Table structure:');
-    result.rows.forEach((row) => {
+    dutiesResult.rows.forEach((row) => {
       console.log(`  - ${row.column_name}: ${row.data_type}`);
     });
 
     client.release();
     await pool.end();
 
-    console.log('✓ Database initialization completed');
+    console.log('\n✓ Database initialization completed');
     process.exit(0);
   } catch (error) {
     console.error('✗ Database initialization failed:', error);

@@ -3,15 +3,22 @@ import { Duty, CreateDutyInput, UpdateDutyInput, DutyRepository } from '../types
 import { AppError } from '../middlewares';
 
 class DutyRepositoryImpl implements DutyRepository {
-  async findAll(): Promise<Duty[]> {
+  async findAll(listId?: string): Promise<Duty[]> {
     try {
-      const query = `
-        SELECT id, name, created_at, updated_at 
+      let query = `
+        SELECT id, name, list_id, created_at, updated_at 
         FROM duties 
-        ORDER BY created_at DESC
       `;
+      const params: string[] = [];
 
-      const result = await pool.query<Duty>(query);
+      if (listId) {
+        query += ` WHERE list_id = $1`;
+        params.push(listId);
+      }
+
+      query += ` ORDER BY created_at DESC`;
+
+      const result = await pool.query<Duty>(query, params.length > 0 ? params : undefined);
       return result.rows;
     } catch (error) {
       console.error('Error in findAll:', error);
@@ -22,7 +29,7 @@ class DutyRepositoryImpl implements DutyRepository {
   async findById(id: string): Promise<Duty | null> {
     try {
       const query = `
-        SELECT id, name, created_at, updated_at 
+        SELECT id, name, list_id, created_at, updated_at 
         FROM duties 
         WHERE id = $1
       `;
@@ -38,12 +45,12 @@ class DutyRepositoryImpl implements DutyRepository {
   async create(input: CreateDutyInput): Promise<Duty> {
     try {
       const query = `
-        INSERT INTO duties (name) 
-        VALUES ($1) 
-        RETURNING id, name, created_at, updated_at
+        INSERT INTO duties (name, list_id) 
+        VALUES ($1, $2) 
+        RETURNING id, name, list_id, created_at, updated_at
       `;
 
-      const result = await pool.query<Duty>(query, [input.name]);
+      const result = await pool.query<Duty>(query, [input.name, input.list_id || null]);
       return result.rows[0];
     } catch (error) {
       console.error('Error in create:', error);
@@ -57,7 +64,7 @@ class DutyRepositoryImpl implements DutyRepository {
         UPDATE duties 
         SET name = $1, updated_at = CURRENT_TIMESTAMP 
         WHERE id = $2 
-        RETURNING id, name, created_at, updated_at
+        RETURNING id, name, list_id, created_at, updated_at
       `;
 
       const result = await pool.query<Duty>(query, [input.name, id]);
