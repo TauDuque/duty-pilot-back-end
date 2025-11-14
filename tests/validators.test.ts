@@ -34,6 +34,14 @@ describe('Duty Validators', () => {
       expect(mockNext).toHaveBeenCalled();
     });
 
+    it('should pass with valid status', () => {
+      mockReq.body = { name: 'Valid Duty Name', status: 'in_progress' };
+
+      expect(() => {
+        validateCreateDuty(mockReq as Request, mockRes as Response, mockNext);
+      }).not.toThrow();
+    });
+
     it('should throw error if name is missing', () => {
       expect(() => {
         validateCreateDuty(mockReq as Request, mockRes as Response, mockNext);
@@ -63,6 +71,14 @@ describe('Duty Validators', () => {
         validateCreateDuty(mockReq as Request, mockRes as Response, mockNext);
       }).toThrow(AppError);
     });
+
+    it('should throw error for invalid status', () => {
+      mockReq.body = { name: 'Duty', status: 'invalid' };
+
+      expect(() => {
+        validateCreateDuty(mockReq as Request, mockRes as Response, mockNext);
+      }).toThrow(AppError);
+    });
   });
 
   describe('validateUpdateDuty', () => {
@@ -74,7 +90,23 @@ describe('Duty Validators', () => {
       expect(mockNext).toHaveBeenCalled();
     });
 
-    it('should throw error if name is missing', () => {
+    it('should pass validation with valid status only', () => {
+      mockReq.body = { status: 'done' };
+
+      expect(() => {
+        validateUpdateDuty(mockReq as Request, mockRes as Response, mockNext);
+      }).not.toThrow();
+    });
+
+    it('should throw error if no fields provided', () => {
+      expect(() => {
+        validateUpdateDuty(mockReq as Request, mockRes as Response, mockNext);
+      }).toThrow(AppError);
+    });
+
+    it('should throw error for invalid status', () => {
+      mockReq.body = { status: 'invalid' };
+
       expect(() => {
         validateUpdateDuty(mockReq as Request, mockRes as Response, mockNext);
       }).toThrow(AppError);

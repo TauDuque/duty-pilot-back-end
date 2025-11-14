@@ -16,6 +16,7 @@ describe('Duty Routes', () => {
   const mockDuty = {
     id: '123e4567-e89b-12d3-a456-426614174000',
     name: 'Test Duty',
+    status: 'pending',
     list_id: '223e4567-e89b-12d3-a456-426614174000',
     created_at: '2025-11-12T13:32:40.225Z',
     updated_at: '2025-11-12T13:32:40.225Z',
@@ -82,16 +83,16 @@ describe('Duty Routes', () => {
       expect(response.body.data).toEqual(mockDuty);
     });
 
-    it('should create a new duty with list_id', async () => {
+    it('should create a new duty with list_id and status', async () => {
       const listId = '223e4567-e89b-12d3-a456-426614174000';
-      const input = { name: 'New Duty', list_id: listId };
-      jest.spyOn(dutyService, 'createDuty').mockResolvedValue(mockDuty);
+      const input = { name: 'New Duty', list_id: listId, status: 'in_progress' as const };
+      jest.spyOn(dutyService, 'createDuty').mockResolvedValue({ ...mockDuty, ...input });
 
       const response = await request(app).post('/api/duties').send(input);
 
       expect(response.status).toBe(201);
       expect(response.body.success).toBe(true);
-      expect(response.body.data).toEqual(mockDuty);
+      expect(response.body.data).toEqual({ ...mockDuty, ...input });
       expect(dutyService.createDuty).toHaveBeenCalledWith(input);
     });
 
@@ -104,6 +105,13 @@ describe('Duty Routes', () => {
 
     it('should return 400 for empty name', async () => {
       const response = await request(app).post('/api/duties').send({ name: '   ' });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBeDefined();
+    });
+
+    it('should return 400 for invalid status', async () => {
+      const response = await request(app).post('/api/duties').send({ name: 'Duty', status: 'invalid' });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toBeDefined();
@@ -123,14 +131,31 @@ describe('Duty Routes', () => {
       expect(response.body.data).toEqual(updatedDuty);
     });
 
+    it('should update status only', async () => {
+      const input = { status: 'done' as const };
+      const updatedDuty = { ...mockDuty, ...input };
+      jest.spyOn(dutyService, 'updateDuty').mockResolvedValue(updatedDuty);
+
+      const response = await request(app).put(`/api/duties/${mockDuty.id}`).send(input);
+
+      expect(response.status).toBe(200);
+      expect(response.body.data).toEqual(updatedDuty);
+    });
+
     it('should return 400 for invalid id format', async () => {
       const response = await request(app).put('/api/duties/invalid-id').send({ name: 'Updated' });
 
       expect(response.status).toBe(400);
     });
 
-    it('should return 400 for missing name', async () => {
+    it('should return 400 when no fields provided', async () => {
       const response = await request(app).put(`/api/duties/${mockDuty.id}`).send({});
+
+      expect(response.status).toBe(400);
+    });
+
+    it('should return 400 for invalid status value', async () => {
+      const response = await request(app).put(`/api/duties/${mockDuty.id}`).send({ status: 'invalid' });
 
       expect(response.status).toBe(400);
     });

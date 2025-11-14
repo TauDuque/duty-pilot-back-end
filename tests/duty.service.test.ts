@@ -9,6 +9,7 @@ describe('DutyService', () => {
   const mockDuty: Duty = {
     id: '123e4567-e89b-12d3-a456-426614174000',
     name: 'Test Duty',
+    status: 'pending',
     list_id: '223e4567-e89b-12d3-a456-426614174000',
     created_at: new Date(),
     updated_at: new Date(),
@@ -60,35 +61,39 @@ describe('DutyService', () => {
   });
 
   describe('createDuty', () => {
-    it('should create and return a new duty', async () => {
+    it('should create and return a new duty with default status', async () => {
       const input = { name: 'New Duty' };
       jest.spyOn(dutyRepository, 'create').mockResolvedValue(mockDuty);
 
       const result = await dutyService.createDuty(input);
 
       expect(result).toEqual(mockDuty);
-      expect(dutyRepository.create).toHaveBeenCalledWith(input);
+      expect(dutyRepository.create).toHaveBeenCalledWith({ ...input, status: 'pending' });
     });
 
-    it('should create duty with list_id', async () => {
-      const input = { name: 'New Duty', list_id: '223e4567-e89b-12d3-a456-426614174000' };
-      jest.spyOn(dutyRepository, 'create').mockResolvedValue(mockDuty);
+    it('should create duty with list_id and status', async () => {
+      const input = {
+        name: 'New Duty',
+        list_id: '223e4567-e89b-12d3-a456-426614174000',
+        status: 'in_progress' as const,
+      };
+      jest.spyOn(dutyRepository, 'create').mockResolvedValue({ ...mockDuty, status: 'in_progress' });
 
       const result = await dutyService.createDuty(input);
 
-      expect(result).toEqual(mockDuty);
+      expect(result.status).toBe('in_progress');
       expect(dutyRepository.create).toHaveBeenCalledWith(input);
     });
   });
 
   describe('updateDuty', () => {
     it('should update and return the duty', async () => {
-      const input = { name: 'Updated Duty' };
-      jest.spyOn(dutyRepository, 'update').mockResolvedValue(mockDuty);
+      const input = { name: 'Updated Duty', status: 'done' as const };
+      jest.spyOn(dutyRepository, 'update').mockResolvedValue({ ...mockDuty, ...input });
 
       const result = await dutyService.updateDuty(mockDuty.id, input);
 
-      expect(result).toEqual(mockDuty);
+      expect(result).toEqual({ ...mockDuty, ...input });
       expect(dutyRepository.update).toHaveBeenCalledWith(mockDuty.id, input);
     });
 
