@@ -1,8 +1,17 @@
 import { Request, Response, NextFunction } from 'express';
 import { AppError } from '../middlewares';
+import type { DutyStatus } from '../types';
+
+const VALID_STATUSES: DutyStatus[] = ['pending', 'in_progress', 'done'];
+
+const validateStatusValue = (status: unknown): void => {
+  if (typeof status !== 'string' || !VALID_STATUSES.includes(status as DutyStatus)) {
+    throw new AppError(400, 'Invalid status value');
+  }
+};
 
 export const validateCreateDuty = (req: Request, _res: Response, next: NextFunction): void => {
-  const { name } = req.body as { name?: unknown };
+  const { name, status } = req.body as { name?: unknown; status?: unknown };
 
   if (!name) {
     throw new AppError(400, 'Name is required');
@@ -18,28 +27,38 @@ export const validateCreateDuty = (req: Request, _res: Response, next: NextFunct
 
   if (name.length > 255) {
     throw new AppError(400, 'Name must be less than 255 characters');
+  }
+
+  if (status !== undefined) {
+    validateStatusValue(status);
   }
 
   next();
 };
 
 export const validateUpdateDuty = (req: Request, _res: Response, next: NextFunction): void => {
-  const { name } = req.body as { name?: unknown };
+  const { name, status } = req.body as { name?: unknown; status?: unknown };
 
-  if (!name) {
-    throw new AppError(400, 'Name is required');
+  if (name === undefined && status === undefined) {
+    throw new AppError(400, 'At least one field (name or status) is required');
   }
 
-  if (typeof name !== 'string') {
-    throw new AppError(400, 'Name must be a string');
+  if (name !== undefined) {
+    if (typeof name !== 'string') {
+      throw new AppError(400, 'Name must be a string');
+    }
+
+    if (name.trim().length === 0) {
+      throw new AppError(400, 'Name cannot be empty');
+    }
+
+    if (name.length > 255) {
+      throw new AppError(400, 'Name must be less than 255 characters');
+    }
   }
 
-  if (name.trim().length === 0) {
-    throw new AppError(400, 'Name cannot be empty');
-  }
-
-  if (name.length > 255) {
-    throw new AppError(400, 'Name must be less than 255 characters');
+  if (status !== undefined) {
+    validateStatusValue(status);
   }
 
   next();

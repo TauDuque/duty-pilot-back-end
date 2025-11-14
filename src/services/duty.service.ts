@@ -18,7 +18,12 @@ class DutyService {
   }
 
   async createDuty(input: CreateDutyInput): Promise<Duty> {
-    return await dutyRepository.create(input);
+    const payload: CreateDutyInput = {
+      ...input,
+      status: input.status ?? 'pending',
+    };
+
+    return await dutyRepository.create(payload);
   }
 
   async updateDuty(id: string, input: UpdateDutyInput): Promise<Duty> {

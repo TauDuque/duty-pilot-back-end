@@ -6,7 +6,7 @@ class DutyRepositoryImpl implements DutyRepository {
   async findAll(listId?: string): Promise<Duty[]> {
     try {
       let query = `
-        SELECT id, name, list_id, created_at, updated_at 
+        SELECT id, name, status, list_id, created_at, updated_at 
         FROM duties 
       `;
       const params: string[] = [];
@@ -29,7 +29,7 @@ class DutyRepositoryImpl implements DutyRepository {
   async findById(id: string): Promise<Duty | null> {
     try {
       const query = `
-        SELECT id, name, list_id, created_at, updated_at 
+        SELECT id, name, status, list_id, created_at, updated_at 
         FROM duties 
         WHERE id = $1
       `;
@@ -45,12 +45,16 @@ class DutyRepositoryImpl implements DutyRepository {
   async create(input: CreateDutyInput): Promise<Duty> {
     try {
       const query = `
-        INSERT INTO duties (name, list_id) 
-        VALUES ($1, $2) 
-        RETURNING id, name, list_id, created_at, updated_at
+        INSERT INTO duties (name, list_id, status) 
+        VALUES ($1, $2, $3) 
+        RETURNING id, name, status, list_id, created_at, updated_at
       `;
 
-      const result = await pool.query<Duty>(query, [input.name, input.list_id || null]);
+      const result = await pool.query<Duty>(query, [
+        input.name,
+        input.list_id || null,
+        input.status ?? 'pending',
+      ]);
       return result.rows[0];
     } catch (error) {
       console.error('Error in create:', error);
@@ -60,14 +64,35 @@ class DutyRepositoryImpl implements DutyRepository {
 
   async update(id: string, input: UpdateDutyInput): Promise<Duty | null> {
     try {
+      const setClauses: string[] = [];
+      const values: unknown[] = [];
+
+      if (input.name !== undefined) {
+        setClauses.push(`name = $${values.length + 1}`);
+        values.push(input.name);
+      }
+
+      if (input.status !== undefined) {
+        setClauses.push(`status = $${values.length + 1}`);
+        values.push(input.status);
+      }
+
+      if (setClauses.length === 0) {
+        throw new AppError(400, 'No fields provided to update duty');
+      }
+
+      setClauses.push('updated_at = CURRENT_TIMESTAMP');
+
       const query = `
         UPDATE duties 
-        SET name = $1, updated_at = CURRENT_TIMESTAMP 
-        WHERE id = $2 
-        RETURNING id, name, list_id, created_at, updated_at
+        SET ${setClauses.join(', ')}
+        WHERE id = $${values.length + 1}
+        RETURNING id, name, status, list_id, created_at, updated_at
       `;
 
-      const result = await pool.query<Duty>(query, [input.name, id]);
+      values.push(id);
+
+      const result = await pool.query<Duty>(query, values);
       return result.rows[0] || null;
     } catch (error) {
       console.error('Error in update:', error);

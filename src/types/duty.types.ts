@@ -1,6 +1,9 @@
+export type DutyStatus = 'pending' | 'in_progress' | 'done';
+
 export interface Duty {
   id: string;
   name: string;
+  status: DutyStatus;
   list_id: string | null;
   created_at?: Date;
   updated_at?: Date;
@@ -9,10 +12,12 @@ export interface Duty {
 export interface CreateDutyInput {
   name: string;
   list_id?: string;
+  status?: DutyStatus;
 }
 
 export interface UpdateDutyInput {
-  name: string;
+  name?: string;
+  status?: DutyStatus;
 }
 
 export interface DutyRepository {
