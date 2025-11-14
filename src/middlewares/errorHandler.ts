@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { ErrorResponse } from '../types';
+import { getRequestLogger } from '../utils/logger';
 
 export class AppError extends Error {
   constructor(
@@ -15,11 +16,12 @@ export class AppError extends Error {
 
 export const errorHandler = (
   err: Error | AppError,
-  _req: Request,
+  req: Request,
   res: Response,
   _next: NextFunction
 ): void => {
-  console.error('Error:', err);
+  const reqLogger = getRequestLogger(req);
+  reqLogger.error({ err }, 'Request failed');
 
   if (err instanceof AppError) {
     const response: ErrorResponse = {
@@ -44,7 +46,9 @@ export const errorHandler = (
   res.status(500).json(response);
 };
 
-export const notFoundHandler = (_req: Request, res: Response): void => {
+export const notFoundHandler = (req: Request, res: Response): void => {
+  const reqLogger = getRequestLogger(req);
+  reqLogger.warn({ path: req.path }, 'Resource not found');
   const response: ErrorResponse = {
     error: 'NotFound',
     message: 'The requested resource was not found',

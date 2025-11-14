@@ -1,3 +1,4 @@
 export * from './errorHandler';
 export * from './asyncHandler';
 export * from './corsConfig';
+export * from './requestLogger';

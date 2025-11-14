@@ -1,5 +1,6 @@
 import { Pool, PoolConfig } from 'pg';
 import dotenv from 'dotenv';
+import { logger } from '../utils/logger';
 
 dotenv.config();
 
@@ -16,13 +17,12 @@ const poolConfig: PoolConfig = {
 
 export const pool = new Pool(poolConfig);
 
-// Test connection
 pool.on('connect', () => {
-  console.log('✓ Database connection established');
+  logger.info('Database connection established');
 });
 
 pool.on('error', (err) => {
-  console.error('✗ Unexpected database error:', err);
+  logger.error({ err }, 'Unexpected database error');
   process.exit(-1);
 });
 
@@ -31,9 +31,9 @@ export const testConnection = async (): Promise<void> => {
     const client = await pool.connect();
     await client.query('SELECT NOW()');
     client.release();
-    console.log('✓ Database connection test successful');
+    logger.info('Database connection test successful');
   } catch (error) {
-    console.error('✗ Database connection test failed:', error);
+    logger.error({ err: error }, 'Database connection test failed');
     throw error;
   }
 };

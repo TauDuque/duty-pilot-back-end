@@ -1,6 +1,7 @@
 import { pool } from '../config/database';
 import { Duty, CreateDutyInput, UpdateDutyInput, DutyRepository } from '../types';
 import { AppError } from '../middlewares';
+import { logger } from '../utils/logger';
 
 class DutyRepositoryImpl implements DutyRepository {
   async findAll(listId?: string): Promise<Duty[]> {
@@ -21,7 +22,7 @@ class DutyRepositoryImpl implements DutyRepository {
       const result = await pool.query<Duty>(query, params.length > 0 ? params : undefined);
       return result.rows;
     } catch (error) {
-      console.error('Error in findAll:', error);
+      logger.error({ err: error }, 'Error in dutyRepository.findAll');
       throw new AppError(500, 'Failed to fetch duties from database');
     }
   }
@@ -37,7 +38,7 @@ class DutyRepositoryImpl implements DutyRepository {
       const result = await pool.query<Duty>(query, [id]);
       return result.rows[0] || null;
     } catch (error) {
-      console.error('Error in findById:', error);
+      logger.error({ err: error, dutyId: id }, 'Error in dutyRepository.findById');
       throw new AppError(500, 'Failed to fetch duty from database');
     }
   }
@@ -57,7 +58,7 @@ class DutyRepositoryImpl implements DutyRepository {
       ]);
       return result.rows[0];
     } catch (error) {
-      console.error('Error in create:', error);
+      logger.error({ err: error, payload: input }, 'Error in dutyRepository.create');
       throw new AppError(500, 'Failed to create duty in database');
     }
   }
@@ -95,7 +96,7 @@ class DutyRepositoryImpl implements DutyRepository {
       const result = await pool.query<Duty>(query, values);
       return result.rows[0] || null;
     } catch (error) {
-      console.error('Error in update:', error);
+      logger.error({ err: error, dutyId: id, payload: input }, 'Error in dutyRepository.update');
       throw new AppError(500, 'Failed to update duty in database');
     }
   }
@@ -111,7 +112,7 @@ class DutyRepositoryImpl implements DutyRepository {
       const result = await pool.query(query, [id]);
       return result.rowCount !== null && result.rowCount > 0;
     } catch (error) {
-      console.error('Error in delete:', error);
+      logger.error({ err: error, dutyId: id }, 'Error in dutyRepository.delete');
       throw new AppError(500, 'Failed to delete duty from database');
     }
   }

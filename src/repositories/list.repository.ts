@@ -1,6 +1,7 @@
 import { pool } from '../config/database';
 import { List, CreateListInput, UpdateListInput, ListRepository } from '../types';
 import { AppError } from '../middlewares';
+import { logger } from '../utils/logger';
 
 class ListRepositoryImpl implements ListRepository {
   async findAll(): Promise<List[]> {
@@ -14,7 +15,7 @@ class ListRepositoryImpl implements ListRepository {
       const result = await pool.query<List>(query);
       return result.rows;
     } catch (error) {
-      console.error('Error in findAll:', error);
+      logger.error({ err: error }, 'Error in listRepository.findAll');
       throw new AppError(500, 'Failed to fetch lists from database');
     }
   }
@@ -30,7 +31,7 @@ class ListRepositoryImpl implements ListRepository {
       const result = await pool.query<List>(query, [id]);
       return result.rows[0] || null;
     } catch (error) {
-      console.error('Error in findById:', error);
+      logger.error({ err: error, listId: id }, 'Error in listRepository.findById');
       throw new AppError(500, 'Failed to fetch list from database');
     }
   }
@@ -46,7 +47,7 @@ class ListRepositoryImpl implements ListRepository {
       const result = await pool.query<List>(query, [input.name]);
       return result.rows[0];
     } catch (error) {
-      console.error('Error in create:', error);
+      logger.error({ err: error, payload: input }, 'Error in listRepository.create');
       throw new AppError(500, 'Failed to create list in database');
     }
   }
@@ -63,7 +64,7 @@ class ListRepositoryImpl implements ListRepository {
       const result = await pool.query<List>(query, [input.name, id]);
       return result.rows[0] || null;
     } catch (error) {
-      console.error('Error in update:', error);
+      logger.error({ err: error, listId: id, payload: input }, 'Error in listRepository.update');
       throw new AppError(500, 'Failed to update list in database');
     }
   }
@@ -79,7 +80,7 @@ class ListRepositoryImpl implements ListRepository {
       const result = await pool.query(query, [id]);
       return result.rowCount !== null && result.rowCount > 0;
     } catch (error) {
-      console.error('Error in delete:', error);
+      logger.error({ err: error, listId: id }, 'Error in listRepository.delete');
       throw new AppError(500, 'Failed to delete list from database');
     }
   }

@@ -1,12 +1,14 @@
 import express, { Application } from 'express';
 import { env } from './config/env';
 import { testConnection } from './config/database';
-import { corsMiddleware, errorHandler, notFoundHandler } from './middlewares';
+import { corsMiddleware, errorHandler, notFoundHandler, requestLogger } from './middlewares';
 import routes from './routes';
+import { logger } from './utils/logger';
 
 const app: Application = express();
 
 // Middlewares
+app.use(requestLogger);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(corsMiddleware);
@@ -25,18 +27,17 @@ const startServer = async (): Promise<void> => {
 
     // Start server
     app.listen(env.port, () => {
-      console.log(`
-╔════════════════════════════════════════════╗
-║     🚀 Duty Pilot Backend Server         ║
-╠════════════════════════════════════════════╣
-║  Environment: ${env.nodeEnv.padEnd(30)}║
-║  Port:        ${env.port.toString().padEnd(30)}║
-║  CORS Origin: ${env.corsOrigin.padEnd(30)}║
-╚════════════════════════════════════════════╝
-      `);
+      logger.info(
+        {
+          environment: env.nodeEnv,
+          port: env.port,
+          corsOrigin: env.corsOrigin,
+        },
+        'Duty Pilot backend server started'
+      );
     });
   } catch (error) {
-    console.error('Failed to start server:', error);
+    logger.error({ err: error }, 'Failed to start server');
     process.exit(1);
   }
 };
