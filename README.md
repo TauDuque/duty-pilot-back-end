@@ -1,371 +1,184 @@
-# Duty Pilot - Backend
+<div align="center">
+  <h1>Duty Pilot – Backend</h1>
+  <p>Node.js + TypeScript API with PostgreSQL, clean architecture, observability, and Jest coverage.</p>
+</div>
 
-Backend API para o aplicativo Duty Pilot - Um sistema de gerenciamento de tarefas (to-do list).
+## Table of Contents
 
-## 🚀 Tecnologias
+1. [Overview](#overview)
+2. [Stack & Features](#stack--features)
+3. [Folder Structure](#folder-structure)
+4. [Prerequisites](#prerequisites)
+5. [Environment Variables](#environment-variables)
+6. [Setup & Usage](#setup--usage)
+7. [Testing & Linting](#testing--linting)
+8. [Observability](#observability)
+9. [Available Scripts](#available-scripts)
+10. [API Surface](#api-surface)
+11. [Troubleshooting](#troubleshooting)
 
-- **Node.js** - Runtime JavaScript
-- **TypeScript** - Superset tipado do JavaScript (strict mode)
-- **Express** - Framework web minimalista
-- **PostgreSQL** - Banco de dados relacional
-- **pg** - Driver PostgreSQL para Node.js
-- **Jest** - Framework de testes
-- **ESLint & Prettier** - Linting e formatação de código
+---
 
-## 📋 Pré-requisitos
+## Overview
 
-- Node.js 18+ instalado
-- PostgreSQL 15+ instalado (ou via Docker)
-- npm ou yarn
+This repository contains the backend half of Duty Pilot—the technical assessment that manages multiple to-do lists, duty statuses, deletion, and theming. The API exposes REST endpoints under `/api`, persists data in PostgreSQL using plain SQL (no ORM), validates every payload, and emits production-ready logs.
 
-## 🔧 Instalação
+---
 
-### 1. Clone o repositório
+## Stack & Features
 
-```bash
-git clone <repository-url>
-cd duty-pilot/back
-```
+- **Node.js 20 + TypeScript** running in strict mode.
+- **Express 5** organized in layers (routes → controllers → services → repositories).
+- **PostgreSQL** via `pg` and raw SQL statements (no ORM abstractions).
+- **Validation middleware** for all list/duty operations.
+- **Jest + Supertest** suites covering services, validators, and routes.
+- **Pino + pino-http** logging with per-request correlation (`requestId`).
+- **Health check** endpoint hitting both the API and the database.
 
-### 2. Instale as dependências
+---
 
-```bash
-npm install
-```
-
-### 3. Configure as variáveis de ambiente
-
-Crie um arquivo `.env` na raiz do diretório `back` baseado no `.env.example`:
-
-```env
-# Server Configuration
-PORT=3001
-NODE_ENV=development
-
-# Database Configuration
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=duty_pilot
-DB_USER=postgres
-DB_PASSWORD=postgres
-
-# CORS Configuration
-CORS_ORIGIN=http://localhost:5173
-```
-
-### 4. Configure o banco de dados
-
-#### Opção A: PostgreSQL via Docker
-
-```bash
-# Inicie o container PostgreSQL
-docker run --name duty-pilot-db \
-  -e POSTGRES_DB=duty_pilot \
-  -e POSTGRES_USER=postgres \
-  -e POSTGRES_PASSWORD=postgres \
-  -p 5432:5432 \
-  -d postgres:15
-```
-
-#### Opção B: PostgreSQL local
-
-Certifique-se de que o PostgreSQL está rodando e crie o banco de dados:
-
-```sql
-CREATE DATABASE duty_pilot;
-```
-
-### 5. Inicialize as tabelas do banco
-
-```bash
-npm run db:init
-```
-
-Este comando criará a tabela `duties` com a seguinte estrutura:
-
-```sql
-CREATE TABLE duties (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name VARCHAR(255) NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-## 🎯 Scripts Disponíveis
-
-```bash
-# Desenvolvimento (com hot reload)
-npm run dev
-
-# Build para produção
-npm run build
-
-# Executar em produção
-npm start
-
-# Executar testes
-npm test
-
-# Executar testes em modo watch
-npm run test:watch
-
-# Executar testes com cobertura
-npm run test:coverage
-
-# Lint do código
-npm run lint
-
-# Lint e correção automática
-npm run lint:fix
-
-# Formatação de código
-npm run format
-
-# Inicializar banco de dados
-npm run db:init
-```
-
-## 📚 API Endpoints
-
-Base URL: `http://localhost:3001/api`
-
-### Health Check
+## Folder Structure
 
 ```
-GET /api/health
+src
+├── config/        # env loader + database pool
+├── controllers/   # HTTP handlers (duty, list, health)
+├── repositories/  # raw SQL queries
+├── services/      # business logic orchestration
+├── middlewares/   # validation, async handler, logger, error handler
+├── routes/        # express.Router wiring
+├── types/         # shared interfaces
+├── utils/         # logger factory, helpers
+└── tests/         # Jest suites (services, validators, routes)
 ```
 
-**Resposta:**
+---
 
-```json
-{
-  "success": true,
-  "message": "API is running",
-  "timestamp": "2024-01-01T00:00:00.000Z"
-}
-```
+## Prerequisites
 
-### Listar todas as tarefas
+| OS               | Requirements                                                                                              |
+| ---------------- | --------------------------------------------------------------------------------------------------------- |
+| **Windows 10+**  | [Node.js 20+](https://nodejs.org/en/download/), npm 10+, [Git](https://git-scm.com/downloads), Docker Desktop (optional for PostgreSQL) |
+| **macOS 13+**    | Node 20+ via `brew install node`, npm 10+, Git, Docker Desktop or [Colima](https://github.com/abiosoft/colima) |
+| **Ubuntu 22.04** | `sudo apt install -y nodejs npm git docker.io docker-compose`, enable Docker daemon                       |
 
-```
-GET /api/duties
-```
+> Tip: use `nvm` or `fnm` to keep Node 20.x aligned across environments.
 
-**Resposta:**
+---
 
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": "uuid",
-      "name": "Task name",
-      "created_at": "2024-01-01T00:00:00.000Z",
-      "updated_at": "2024-01-01T00:00:00.000Z"
-    }
-  ]
-}
-```
+## Environment Variables
 
-### Buscar tarefa por ID
+Create `.env` (or configure secrets) with:
 
-```
-GET /api/duties/:id
-```
+| Variable     | Description                              | Default                 |
+| ------------ | ---------------------------------------- | ----------------------- |
+| `PORT`       | HTTP port                                | `3001`                  |
+| `NODE_ENV`   | `development` / `production`             | `development`           |
+| `CORS_ORIGIN`| Allowed frontend origin                  | `http://localhost:5173` |
+| `DB_HOST`    | PostgreSQL host                          | `localhost`             |
+| `DB_PORT`    | PostgreSQL port                          | `5432`                  |
+| `DB_NAME`    | Database name                            | `duty_pilot`            |
+| `DB_USER`    | Database user                            | `postgres`              |
+| `DB_PASSWORD`| Database password                        | `postgres`              |
+| `LOG_LEVEL`  | Pino level (`debug`, `info`, `warn`, `error`) | `info`              |
 
-**Resposta:**
+---
 
-```json
-{
-  "success": true,
-  "data": {
-    "id": "uuid",
-    "name": "Task name",
-    "created_at": "2024-01-01T00:00:00.000Z",
-    "updated_at": "2024-01-01T00:00:00.000Z"
-  }
-}
-```
+## Setup & Usage
 
-### Criar nova tarefa
+1. **Clone & install**
+   ```bash
+   git clone <BACKEND_REPO_URL>
+   cd back
+   npm install
+   cp .env.example .env    # create manually if the sample is not present
+   ```
+2. **Provision PostgreSQL**
+   - Docker (recommended):
+     ```bash
+     docker run --name duty-pilot-db -e POSTGRES_DB=duty_pilot \
+       -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres \
+       -p 5432:5432 -d postgres:15
+     ```
+   - Native install: install PostgreSQL 15+, create database/user/password, adjust `.env`.
+3. **Bootstrap schema**
+   ```bash
+   npm run db:init
+   ```
+   Creates `lists`/`duties`, indexes, and a default list.
+4. **Run in development**
+   ```bash
+   npm run dev
+   ```
+   API will listen on `http://localhost:3001/api`.
+5. **Build & start (production)**
+   ```bash
+   npm run build
+   npm start
+   ```
 
-```
-POST /api/duties
-Content-Type: application/json
+---
 
-{
-  "name": "Task name"
-}
-```
+## Testing & Linting
 
-**Validações:**
+| Command              | Description                                          |
+| -------------------- | ---------------------------------------------------- |
+| `npm run test`       | Runs all Jest suites (services, validators, routes).  |
+| `npm run test:watch` | Watches files while running tests.                   |
+| `npm run lint`       | ESLint (TS strict).                                   |
+| `npm run lint:fix`   | ESLint with auto-fix.                                 |
+| `npm run format`     | Prettier formatting for `src/**/*.ts`.                |
 
-- `name` é obrigatório
-- `name` deve ser uma string
-- `name` não pode estar vazio
-- `name` deve ter menos de 255 caracteres
+---
 
-**Resposta:**
+## Observability
 
-```json
-{
-  "success": true,
-  "data": {
-    "id": "uuid",
-    "name": "Task name",
-    "created_at": "2024-01-01T00:00:00.000Z",
-    "updated_at": "2024-01-01T00:00:00.000Z"
-  }
-}
-```
+- `pino-http` middleware injects a logger into each request and assigns a `requestId` (propagated from `x-request-id`).
+- `LOG_LEVEL` tunes verbosity per environment.
+- Centralized `errorHandler` logs structured payloads and hides stack traces from clients.
+- `/api/health` returns `200` when both API and database are healthy; otherwise `503` with `database: 'error'`.
 
-### Atualizar tarefa
+---
 
-```
-PUT /api/duties/:id
-Content-Type: application/json
+## Available Scripts
 
-{
-  "name": "Updated task name"
-}
-```
+- `npm run dev`
+- `npm run build`
+- `npm start`
+- `npm run db:init`
+- `npm run test`
+- `npm run test:watch`
+- `npm run test:coverage`
+- `npm run lint`
+- `npm run lint:fix`
+- `npm run format`
 
-**Validações:**
+---
 
-- `name` é obrigatório
-- `name` deve ser uma string
-- `name` não pode estar vazio
-- `name` deve ter menos de 255 caracteres
+## API Surface
 
-**Resposta:**
+| Method | Endpoint                | Description                                   |
+| ------ | ----------------------- | --------------------------------------------- |
+| GET    | `/api/health`           | Health-check (verifies DB connectivity).      |
+| GET    | `/api/lists`            | Retrieve all lists.                           |
+| POST   | `/api/lists`            | Create a list (`name`).                       |
+| PUT    | `/api/lists/:id`        | Update a list name.                           |
+| DELETE | `/api/lists/:id`        | Delete a list (cascade deletes duties).       |
+| GET    | `/api/duties`           | Retrieve duties (optional `list_id` filter).  |
+| POST   | `/api/duties`           | Create a duty (`name`, optional `list_id`, optional `status`). |
+| PUT    | `/api/duties/:id`       | Update duty name or status.                   |
+| DELETE | `/api/duties/:id`       | Delete a duty.                                |
 
-```json
-{
-  "success": true,
-  "data": {
-    "id": "uuid",
-    "name": "Updated task name",
-    "created_at": "2024-01-01T00:00:00.000Z",
-    "updated_at": "2024-01-01T00:00:00.000Z"
-  }
-}
-```
+---
 
-### Deletar tarefa
+## Troubleshooting
 
-```
-DELETE /api/duties/:id
-```
+- **Port already in use** → change `PORT` in `.env` and restart.
+- **Database connection failures** → ensure the Docker container is running (`docker ps`) and credentials match `.env`.
+- **Jest cannot find types** → reinstall dependencies and confirm `tsconfig.json` includes `"types": ["node", "jest"]`.
+- **CRLF vs LF lint errors** → run `npm run lint:fix` or `npx prettier --write src`.
+- **Verbose logs** → set `LOG_LEVEL=warn` or `error` in `.env` for quieter environments.
 
-**Resposta:**
+---
 
-- Status: 204 No Content
-
-### Tratamento de Erros
-
-Todos os erros seguem o formato:
-
-```json
-{
-  "error": "ErrorType",
-  "message": "Error message",
-  "details": {} // opcional
-}
-```
-
-Códigos de status HTTP:
-
-- `200` - Sucesso
-- `201` - Criado com sucesso
-- `204` - Deletado com sucesso (sem conteúdo)
-- `400` - Erro de validação
-- `404` - Recurso não encontrado
-- `500` - Erro interno do servidor
-
-## 🏗️ Arquitetura
-
-O projeto segue uma arquitetura em camadas para garantir separação de responsabilidades e escalabilidade:
-
-```
-src/
-├── config/           # Configurações (DB, env)
-├── controllers/      # Controladores (recebem requisições)
-├── services/         # Lógica de negócio
-├── repositories/     # Acesso ao banco de dados (SQL puro)
-├── routes/          # Definição de rotas
-├── middlewares/     # Middlewares (CORS, error handling)
-├── validators/      # Validações de entrada
-├── types/           # Tipos TypeScript
-└── index.ts         # Entry point
-```
-
-### Fluxo de uma requisição:
-
-1. **Route** → Define o endpoint e middlewares
-2. **Validator** → Valida os dados de entrada
-3. **Controller** → Recebe a requisição
-4. **Service** → Executa a lógica de negócio
-5. **Repository** → Acessa o banco de dados
-6. **Response** → Retorna a resposta formatada
-
-## 🧪 Testes
-
-O projeto inclui testes unitários e de integração:
-
-```bash
-# Executar todos os testes
-npm test
-
-# Ver cobertura de testes
-npm run test:coverage
-```
-
-Arquivos de teste:
-
-- `tests/duty.service.test.ts` - Testes da camada de serviço
-- `tests/duty.routes.test.ts` - Testes de integração das rotas
-- `tests/validators.test.ts` - Testes dos validadores
-
-## 📝 Observabilidade
-
-- Logs estruturados no console
-- Tratamento centralizado de erros
-- Health check endpoint
-- Mensagens claras de erro para o cliente
-
-## 🔒 Segurança
-
-- Validação rigorosa de entrada
-- TypeScript strict mode
-- Proteção contra SQL injection (prepared statements)
-- CORS configurável
-- Tratamento de erros sem exposição de informações sensíveis
-
-## 🚀 Deploy
-
-### Build para produção
-
-```bash
-npm run build
-```
-
-O código compilado estará em `dist/`.
-
-### Executar em produção
-
-```bash
-NODE_ENV=production npm start
-```
-
-### Variáveis de ambiente em produção
-
-Certifique-se de configurar todas as variáveis de ambiente necessárias no seu servidor/plataforma de deploy.
-
-## 📄 Licença
-
-ISC
-
-## 👥 Autor
-
-Desenvolvido como parte de um teste técnico.
+Need UI screenshots or usage instructions? Those live in the frontend repository README. This document focuses solely on the backend service.
