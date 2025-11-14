@@ -10,6 +10,9 @@ const pool = new Pool({
 });
 
 const createTablesQuery = `
+  -- Ensure pgcrypto is available for gen_random_uuid()
+  CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
   -- Create lists table
   CREATE TABLE IF NOT EXISTS lists (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
