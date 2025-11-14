@@ -22,6 +22,7 @@ const createTablesQuery = `
   CREATE TABLE IF NOT EXISTS duties (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
   );
@@ -58,6 +59,19 @@ async function initDatabase() {
     // Create index for list_id after ensuring column exists
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_duties_list_id ON duties(list_id);
+    `);
+
+    // Add status column to duties if it doesn't exist
+    await client.query(`
+      DO $$ 
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'duties' AND column_name = 'status'
+        ) THEN
+          ALTER TABLE duties ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'pending';
+        END IF;
+      END $$;
     `);
 
     // Create default list if it doesn't exist
